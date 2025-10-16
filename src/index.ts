@@ -3,6 +3,7 @@ import { PaystackGateway } from "./gateways/paystack";
 import { FlutterwaveGateway } from "./gateways/flutterwave";
 import { Decimal } from "decimal.js";
 import { InitiateTransactionResponse, VerifyTransactionResponse } from "./types";
+import { PaymentGatewayError } from "./errors";
 
 export class AfricanPaymentGatewaySDK {
   private gateway: PaymentGateway;
@@ -13,7 +14,7 @@ export class AfricanPaymentGatewaySDK {
     } else if (gatewayType === 'flutterwave') {
       this.gateway = new FlutterwaveGateway(credentials.publicKey, credentials.secretKey);
     } else {
-      throw new Error('Invalid gateway type provided.');
+      throw new PaymentGatewayError('Invalid gateway type provided.');
     }
   }
 
