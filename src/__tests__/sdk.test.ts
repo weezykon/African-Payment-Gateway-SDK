@@ -31,9 +31,9 @@ describe('AfricanPaymentGatewaySDK', () => {
     });
 
     it('should throw an error for invalid gateway type', () => {
-      // @ts-ignore
+      // @ts-expect-error - Testing invalid input
       expect(() => new AfricanPaymentGatewaySDK('invalid', {})).toThrow(PaymentGatewayError);
-      // @ts-ignore
+      // @ts-expect-error - Testing invalid input
       expect(() => new AfricanPaymentGatewaySDK('invalid', {})).toThrow('Invalid gateway type provided.');
     });
   });
@@ -80,6 +80,7 @@ describe('AfricanPaymentGatewaySDK', () => {
           email: customerEmail,
           currency,
           reference,
+          callback_url: undefined,
         },
         {
           headers: {
@@ -189,13 +190,14 @@ describe('AfricanPaymentGatewaySDK', () => {
           tx_ref: reference,
           amount: amount.toNumber(),
           currency,
-          redirect_url: 'https://webhook.site/',
+          redirect_url: 'https://example.com/callback',
           customer: {
             email: customerEmail,
           },
           customizations: {
             title: 'Payment for Order',
             description: 'Payment for items purchased',
+            logo: undefined,
           },
         },
         {

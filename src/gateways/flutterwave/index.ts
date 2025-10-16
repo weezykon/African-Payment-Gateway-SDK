@@ -1,14 +1,15 @@
 import { PaymentGateway } from '../index';
 import { Decimal } from 'decimal.js';
-import { InitiateTransactionResponse, VerifyTransactionResponse } from '../../types';
+import { InitiateTransactionResponse, VerifyTransactionResponse, TransactionConfig } from '../../types';
 import { PaymentGatewayError, TransactionVerificationError } from '../../errors';
+import { DEFAULT_TRANSACTION_CONFIG } from '../../constants';
 import axios from 'axios';
 
 export class FlutterwaveGateway implements PaymentGateway {
   private readonly API_BASE_URL = 'https://api.flutterwave.com/v3';
 
   constructor(
-    private publicKey: string,
+    private _publicKey: string,
     private secretKey: string,
   ) {}
 
@@ -17,6 +18,7 @@ export class FlutterwaveGateway implements PaymentGateway {
     currency: string,
     customerEmail: string,
     reference: string,
+    config?: TransactionConfig,
   ): Promise<InitiateTransactionResponse> {
     try {
       const response = await axios.post(
@@ -25,13 +27,14 @@ export class FlutterwaveGateway implements PaymentGateway {
           tx_ref: reference,
           amount: amount.toNumber(),
           currency,
-          redirect_url: 'https://webhook.site/', // This should be a configurable URL
+          redirect_url: config?.redirectUrl || 'https://example.com/callback',
           customer: {
             email: customerEmail,
           },
           customizations: {
-            title: 'Payment for Order',
-            description: 'Payment for items purchased',
+            title: config?.customizations?.title || DEFAULT_TRANSACTION_CONFIG.title,
+            description: config?.customizations?.description || DEFAULT_TRANSACTION_CONFIG.description,
+            logo: config?.customizations?.logo,
           },
         },
         {
@@ -52,8 +55,12 @@ export class FlutterwaveGateway implements PaymentGateway {
       } else {
         throw new PaymentGatewayError(response.data.message || 'Flutterwave transaction initiation failed');
       }
-    } catch (error: any) {
-      throw new PaymentGatewayError(error.response?.data?.message || error.message, error.response?.status);
+    } catch (error: unknown) {
+      const axiosError = error as { response?: { data?: { message?: string }; status?: number }; message?: string };
+      throw new PaymentGatewayError(
+        axiosError.response?.data?.message || axiosError.message || 'Unknown error',
+        axiosError.response?.status?.toString(),
+      );
     }
   }
 
@@ -87,8 +94,12 @@ export class FlutterwaveGateway implements PaymentGateway {
       } else {
         throw new TransactionVerificationError(response.data.message || 'Flutterwave transaction verification failed');
       }
-    } catch (error: any) {
-      throw new TransactionVerificationError(error.response?.data?.message || error.message, error.response?.status);
+    } catch (error: unknown) {
+      const axiosError = error as { response?: { data?: { message?: string }; status?: number }; message?: string };
+      throw new TransactionVerificationError(
+        axiosError.response?.data?.message || axiosError.message || 'Unknown error',
+        axiosError.response?.status?.toString(),
+      );
     }
   }
 }

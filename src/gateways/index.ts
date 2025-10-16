@@ -1,5 +1,5 @@
 import { Decimal } from 'decimal.js';
-import { InitiateTransactionResponse, VerifyTransactionResponse } from '../types';
+import { InitiateTransactionResponse, VerifyTransactionResponse, TransactionConfig } from '../types';
 
 export interface PaymentGateway {
   initiateTransaction(
@@ -7,6 +7,7 @@ export interface PaymentGateway {
     currency: string,
     customerEmail: string,
     reference: string,
+    config?: TransactionConfig,
   ): Promise<InitiateTransactionResponse>;
   verifyTransaction(reference: string): Promise<VerifyTransactionResponse>;
 }

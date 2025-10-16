@@ -1,9 +1,20 @@
 {
   "name": "african-payment-gateway-sdk",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
-  "type": "module",
+  "description": "TypeScript SDK for integrating African payment gateways (Paystack, Flutterwave) with comprehensive type safety and validation",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "type": "commonjs",
+  "exports": {
+    ".": {
+      "require": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./utils/webhook": {
+      "require": "./dist/utils/webhook.js",
+      "types": "./dist/utils/webhook.d.ts"
+    }
+  },
   "scripts": {
     "build": "tsc",
     "docs": "typedoc --out docs/api src/index.ts",
@@ -16,9 +27,20 @@
     "type": "git",
     "url": "git+https://github.com/weezykon/African-Payment-Gateway-SDK.git"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "keywords": [
+    "paystack",
+    "flutterwave",
+    "payment",
+    "gateway",
+    "africa",
+    "nigeria",
+    "typescript",
+    "sdk",
+    "payments",
+    "fintech"
+  ],
+  "author": "Akinbode Akinbode",
+  "license": "MIT",
   "bugs": {
     "url": "https://github.com/weezykon/African-Payment-Gateway-SDK/issues"
   },
@@ -29,6 +51,7 @@
     "@typescript-eslint/parser": "^8.46.1",
     "eslint": "^9.37.0",
     "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-eslint-plugin": "^7.0.0",
     "eslint-plugin-prettier": "^5.5.4",
     "jest": "^30.2.0",
     "prettier": "^3.6.2",

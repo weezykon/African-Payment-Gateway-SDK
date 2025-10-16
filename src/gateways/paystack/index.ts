@@ -1,7 +1,8 @@
 import { PaymentGateway } from '../index';
 import { Decimal } from 'decimal.js';
-import { InitiateTransactionResponse, VerifyTransactionResponse } from '../../types';
+import { InitiateTransactionResponse, VerifyTransactionResponse, TransactionConfig } from '../../types';
 import { PaymentGatewayError, TransactionVerificationError } from '../../errors';
+import { NAIRA_TO_KOBO } from '../../constants';
 import axios from 'axios';
 
 export class PaystackGateway implements PaymentGateway {
@@ -14,15 +15,17 @@ export class PaystackGateway implements PaymentGateway {
     currency: string,
     customerEmail: string,
     reference: string,
+    config?: TransactionConfig,
   ): Promise<InitiateTransactionResponse> {
     try {
       const response = await axios.post(
         `${this.API_BASE_URL}/transaction/initialize`,
         {
-          amount: amount.times(100).toNumber(), // Paystack expects amount in kobo (multiply by 100)
+          amount: amount.times(NAIRA_TO_KOBO).toNumber(), // Paystack expects amount in kobo
           email: customerEmail,
           currency,
           reference,
+          callback_url: config?.redirectUrl,
         },
         {
           headers: {
@@ -43,8 +46,12 @@ export class PaystackGateway implements PaymentGateway {
       } else {
         throw new PaymentGatewayError(response.data.message || 'Paystack transaction initiation failed');
       }
-    } catch (error: any) {
-      throw new PaymentGatewayError(error.response?.data?.message || error.message, error.response?.status);
+    } catch (error: unknown) {
+      const axiosError = error as { response?: { data?: { message?: string }; status?: number }; message?: string };
+      throw new PaymentGatewayError(
+        axiosError.response?.data?.message || axiosError.message || 'Unknown error',
+        axiosError.response?.status?.toString(),
+      );
     }
   }
 
@@ -63,7 +70,7 @@ export class PaystackGateway implements PaymentGateway {
           status: 'success',
           message: response.data.message,
           data: {
-            amount: new Decimal(data.amount).dividedBy(100), // Convert from kobo to actual amount
+            amount: new Decimal(data.amount).dividedBy(NAIRA_TO_KOBO), // Convert from kobo to actual amount
             currency: data.currency,
             reference: data.reference,
             status: data.status,
@@ -78,8 +85,12 @@ export class PaystackGateway implements PaymentGateway {
       } else {
         throw new TransactionVerificationError(response.data.message || 'Paystack transaction verification failed');
       }
-    } catch (error: any) {
-      throw new TransactionVerificationError(error.response?.data?.message || error.message, error.response?.status);
+    } catch (error: unknown) {
+      const axiosError = error as { response?: { data?: { message?: string }; status?: number }; message?: string };
+      throw new TransactionVerificationError(
+        axiosError.response?.data?.message || axiosError.message || 'Unknown error',
+        axiosError.response?.status?.toString(),
+      );
     }
   }
 }

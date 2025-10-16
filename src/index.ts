@@ -2,18 +2,31 @@ import { PaymentGateway } from './gateways';
 import { PaystackGateway } from './gateways/paystack';
 import { FlutterwaveGateway } from './gateways/flutterwave';
 import { Decimal } from 'decimal.js';
-import { InitiateTransactionResponse, VerifyTransactionResponse } from './types';
+import {
+  InitiateTransactionResponse,
+  VerifyTransactionResponse,
+  PaystackCredentials,
+  FlutterwaveCredentials,
+  TransactionConfig,
+} from './types';
 import { PaymentGatewayError } from './errors';
 import { initiateTransactionSchema, verifyTransactionSchema } from './validation';
 
 export class AfricanPaymentGatewaySDK {
   private gateway: PaymentGateway;
 
-  constructor(gatewayType: 'paystack' | 'flutterwave', credentials: any) {
+  constructor(gatewayType: 'paystack', credentials: PaystackCredentials);
+  constructor(gatewayType: 'flutterwave', credentials: FlutterwaveCredentials);
+  constructor(
+    gatewayType: 'paystack' | 'flutterwave',
+    credentials: PaystackCredentials | FlutterwaveCredentials,
+  ) {
     if (gatewayType === 'paystack') {
-      this.gateway = new PaystackGateway(credentials.secretKey);
+      const paystackCreds = credentials as PaystackCredentials;
+      this.gateway = new PaystackGateway(paystackCreds.secretKey);
     } else if (gatewayType === 'flutterwave') {
-      this.gateway = new FlutterwaveGateway(credentials.publicKey, credentials.secretKey);
+      const flutterwaveCreds = credentials as FlutterwaveCredentials;
+      this.gateway = new FlutterwaveGateway(flutterwaveCreds.publicKey, flutterwaveCreds.secretKey);
     } else {
       throw new PaymentGatewayError('Invalid gateway type provided.');
     }
@@ -24,6 +37,7 @@ export class AfricanPaymentGatewaySDK {
     currency: string,
     customerEmail: string,
     reference: string,
+    config?: TransactionConfig,
   ): Promise<InitiateTransactionResponse> {
     const validationResult = initiateTransactionSchema.safeParse({
       amount: amount.toNumber(), // Zod expects number for validation
@@ -33,19 +47,26 @@ export class AfricanPaymentGatewaySDK {
     });
 
     if (!validationResult.success) {
-      throw new PaymentGatewayError('Invalid transaction initiation data', validationResult.error.issues[0].message);
+      const errorMessages = validationResult.error.issues.map((issue) => issue.message).join(', ');
+      throw new PaymentGatewayError('Invalid transaction initiation data', errorMessages);
     }
 
-    return this.gateway.initiateTransaction(amount, currency, customerEmail, reference);
+    return this.gateway.initiateTransaction(amount, currency, customerEmail, reference, config);
   }
 
   public async verifyTransaction(reference: string): Promise<VerifyTransactionResponse> {
     const validationResult = verifyTransactionSchema.safeParse({ reference });
 
     if (!validationResult.success) {
-      throw new PaymentGatewayError('Invalid transaction verification data', validationResult.error.issues[0].message);
+      const errorMessages = validationResult.error.issues.map((issue) => issue.message).join(', ');
+      throw new PaymentGatewayError('Invalid transaction verification data', errorMessages);
     }
 
     return this.gateway.verifyTransaction(reference);
   }
 }
+
+// Export types for consumers
+export * from './types';
+export * from './errors';
+export * from './utils/webhook';
