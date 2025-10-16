@@ -32,22 +32,26 @@ import { Decimal } from 'decimal.js';
 const paystackSDK = new AfricanPaymentGatewaySDK('paystack', { secretKey: 'YOUR_PAYSTACK_SECRET_KEY' });
 
 // For Flutterwave
-const flutterwaveSDK = new AfricanPaymentGatewaySDK('flutterwave', { publicKey: 'YOUR_FLUTTERWAVE_PUBLIC_KEY', secretKey: 'YOUR_FLUTTERWAVE_SECRET_KEY' });
+const flutterwaveSDK = new AfricanPaymentGatewaySDK('flutterwave', {
+  publicKey: 'YOUR_FLUTTERWAVE_PUBLIC_KEY',
+  secretKey: 'YOUR_FLUTTERWAVE_SECRET_KEY',
+});
 ```
 
 ### Initiating a Transaction
 
 ```typescript
-const amount = new Decimal(100.50);
+const amount = new Decimal(100.5);
 const currency = 'NGN';
 const customerEmail = 'customer@example.com';
 const reference = `txn_${Date.now()}`;
 
-paystackSDK.initiateTransaction(amount, currency, customerEmail, reference)
-  .then(response => {
+paystackSDK
+  .initiateTransaction(amount, currency, customerEmail, reference)
+  .then((response) => {
     console.log('Transaction initiated:', response);
   })
-  .catch(error => {
+  .catch((error) => {
     console.error('Error initiating transaction:', error);
   });
 ```
@@ -57,11 +61,12 @@ paystackSDK.initiateTransaction(amount, currency, customerEmail, reference)
 ```typescript
 const transactionReference = 'txn_123456789';
 
-paystackSDK.verifyTransaction(transactionReference)
-  .then(response => {
+paystackSDK
+  .verifyTransaction(transactionReference)
+  .then((response) => {
     console.log('Transaction verified:', response);
   })
-  .catch(error => {
+  .catch((error) => {
     console.error('Error verifying transaction:', error);
   });
 ```
@@ -69,11 +74,19 @@ paystackSDK.verifyTransaction(transactionReference)
 ### Webhook Signature Validation
 
 ```typescript
-import { verifyPaystackWebhookSignature, verifyFlutterwaveWebhookSignature } from 'african-payment-gateway-sdk/dist/utils/webhook';
+import {
+  verifyPaystackWebhookSignature,
+  verifyFlutterwaveWebhookSignature,
+} from 'african-payment-gateway-sdk/dist/utils/webhook';
 
 // For Paystack
 const paystackSignature = 'x-paystack-signature-from-request-header';
-const paystackPayload = { event: 'charge.success', data: { /* ... */ } };
+const paystackPayload = {
+  event: 'charge.success',
+  data: {
+    /* ... */
+  },
+};
 const paystackSecret = 'YOUR_PAYSTACK_SECRET_KEY';
 
 try {
@@ -85,7 +98,12 @@ try {
 
 // For Flutterwave
 const flutterwaveSignature = 'verif-hash-from-request-header';
-const flutterwavePayload = { event: 'charge.completed', data: { /* ... */ } };
+const flutterwavePayload = {
+  event: 'charge.completed',
+  data: {
+    /* ... */
+  },
+};
 const flutterwaveSecret = 'YOUR_FLUTTERWAVE_SECRET_HASH';
 
 try {

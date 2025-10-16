@@ -1,5 +1,8 @@
 export class PaymentGatewayError extends Error {
-  constructor(message: string, public code?: string) {
+  constructor(
+    message: string,
+    public code?: string,
+  ) {
     super(message);
     this.name = 'PaymentGatewayError';
   }

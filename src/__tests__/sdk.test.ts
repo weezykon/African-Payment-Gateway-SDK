@@ -23,7 +23,10 @@ describe('AfricanPaymentGatewaySDK', () => {
     });
 
     it('should initialize with Flutterwave gateway', () => {
-      const sdk = new AfricanPaymentGatewaySDK('flutterwave', { publicKey: flutterwavePublicKey, secretKey: flutterwaveSecretKey });
+      const sdk = new AfricanPaymentGatewaySDK('flutterwave', {
+        publicKey: flutterwavePublicKey,
+        secretKey: flutterwaveSecretKey,
+      });
       expect(sdk).toBeInstanceOf(AfricanPaymentGatewaySDK);
     });
 
@@ -83,7 +86,7 @@ describe('AfricanPaymentGatewaySDK', () => {
             Authorization: `Bearer ${paystackSecretKey}`,
             'Content-Type': 'application/json',
           },
-        }
+        },
       );
     });
 
@@ -124,15 +127,12 @@ describe('AfricanPaymentGatewaySDK', () => {
         },
       });
       expect(mockedAxios.get).toHaveBeenCalledTimes(1);
-      expect(mockedAxios.get).toHaveBeenCalledWith(
-        'https://api.paystack.co/transaction/verify/test_ref_123',
-        {
-          headers: {
-            Authorization: `Bearer ${paystackSecretKey}`,
-            'Content-Type': 'application/json',
-          },
-        }
-      );
+      expect(mockedAxios.get).toHaveBeenCalledWith('https://api.paystack.co/transaction/verify/test_ref_123', {
+        headers: {
+          Authorization: `Bearer ${paystackSecretKey}`,
+          'Content-Type': 'application/json',
+        },
+      });
     });
 
     it('should throw an error for invalid transaction initiation data (Paystack)', async () => {
@@ -142,7 +142,7 @@ describe('AfricanPaymentGatewaySDK', () => {
       const reference = 'test_ref_123';
 
       await expect(paystackSDK.initiateTransaction(amount, currency, customerEmail, reference)).rejects.toThrow(
-        'Invalid transaction initiation data'
+        'Invalid transaction initiation data',
       );
     });
   });
@@ -151,7 +151,10 @@ describe('AfricanPaymentGatewaySDK', () => {
     let flutterwaveSDK: AfricanPaymentGatewaySDK;
 
     beforeEach(() => {
-      flutterwaveSDK = new AfricanPaymentGatewaySDK('flutterwave', { publicKey: flutterwavePublicKey, secretKey: flutterwaveSecretKey });
+      flutterwaveSDK = new AfricanPaymentGatewaySDK('flutterwave', {
+        publicKey: flutterwavePublicKey,
+        secretKey: flutterwaveSecretKey,
+      });
     });
 
     it('should initiate a Flutterwave transaction successfully', async () => {
@@ -200,7 +203,7 @@ describe('AfricanPaymentGatewaySDK', () => {
             Authorization: `Bearer ${flutterwaveSecretKey}`,
             'Content-Type': 'application/json',
           },
-        }
+        },
       );
     });
 
@@ -241,15 +244,12 @@ describe('AfricanPaymentGatewaySDK', () => {
         },
       });
       expect(mockedAxios.get).toHaveBeenCalledTimes(1);
-      expect(mockedAxios.get).toHaveBeenCalledWith(
-        'https://api.flutterwave.com/v3/transactions/test_ref_456/verify',
-        {
-          headers: {
-            Authorization: `Bearer ${flutterwaveSecretKey}`,
-            'Content-Type': 'application/json',
-          },
-        }
-      );
+      expect(mockedAxios.get).toHaveBeenCalledWith('https://api.flutterwave.com/v3/transactions/test_ref_456/verify', {
+        headers: {
+          Authorization: `Bearer ${flutterwaveSecretKey}`,
+          'Content-Type': 'application/json',
+        },
+      });
     });
 
     it('should throw an error for invalid transaction initiation data (Flutterwave)', async () => {
@@ -259,7 +259,7 @@ describe('AfricanPaymentGatewaySDK', () => {
       const reference = 'test_ref_456';
 
       await expect(flutterwaveSDK.initiateTransaction(amount, currency, customerEmail, reference)).rejects.toThrow(
-        'Invalid transaction initiation data'
+        'Invalid transaction initiation data',
       );
     });
   });

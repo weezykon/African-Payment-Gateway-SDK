@@ -1,15 +1,20 @@
-import { PaymentGateway } from "../index";
-import { Decimal } from "decimal.js";
-import { InitiateTransactionResponse, VerifyTransactionResponse } from "../../types";
-import { PaymentGatewayError, TransactionVerificationError } from "../../errors";
-import axios from "axios";
+import { PaymentGateway } from '../index';
+import { Decimal } from 'decimal.js';
+import { InitiateTransactionResponse, VerifyTransactionResponse } from '../../types';
+import { PaymentGatewayError, TransactionVerificationError } from '../../errors';
+import axios from 'axios';
 
 export class PaystackGateway implements PaymentGateway {
-  private readonly API_BASE_URL = "https://api.paystack.co";
+  private readonly API_BASE_URL = 'https://api.paystack.co';
 
   constructor(private secretKey: string) {}
 
-  async initiateTransaction(amount: Decimal, currency: string, customerEmail: string, reference: string): Promise<InitiateTransactionResponse> {
+  async initiateTransaction(
+    amount: Decimal,
+    currency: string,
+    customerEmail: string,
+    reference: string,
+  ): Promise<InitiateTransactionResponse> {
     try {
       const response = await axios.post(
         `${this.API_BASE_URL}/transaction/initialize`,
@@ -24,19 +29,19 @@ export class PaystackGateway implements PaymentGateway {
             Authorization: `Bearer ${this.secretKey}`,
             'Content-Type': 'application/json',
           },
-        }
+        },
       );
 
       if (response.data.status) {
         return {
           message: response.data.message,
           reference: response.data.data.reference,
-          status: "success",
+          status: 'success',
           authorizationUrl: response.data.data.authorization_url,
           accessCode: response.data.data.access_code,
         };
       } else {
-        throw new PaymentGatewayError(response.data.message || "Paystack transaction initiation failed");
+        throw new PaymentGatewayError(response.data.message || 'Paystack transaction initiation failed');
       }
     } catch (error: any) {
       throw new PaymentGatewayError(error.response?.data?.message || error.message, error.response?.status);
@@ -45,20 +50,17 @@ export class PaystackGateway implements PaymentGateway {
 
   async verifyTransaction(reference: string): Promise<VerifyTransactionResponse> {
     try {
-      const response = await axios.get(
-        `${this.API_BASE_URL}/transaction/verify/${reference}`,
-        {
-          headers: {
-            Authorization: `Bearer ${this.secretKey}`,
-            'Content-Type': 'application/json',
-          },
-        }
-      );
+      const response = await axios.get(`${this.API_BASE_URL}/transaction/verify/${reference}`, {
+        headers: {
+          Authorization: `Bearer ${this.secretKey}`,
+          'Content-Type': 'application/json',
+        },
+      });
 
       if (response.data.status) {
         const data = response.data.data;
         return {
-          status: "success",
+          status: 'success',
           message: response.data.message,
           data: {
             amount: new Decimal(data.amount).dividedBy(100), // Convert from kobo to actual amount
@@ -66,11 +68,15 @@ export class PaystackGateway implements PaymentGateway {
             reference: data.reference,
             status: data.status,
             gatewayResponse: data,
-            customer: { email: data.customer.email, firstName: data.customer.first_name, lastName: data.customer.last_name },
+            customer: {
+              email: data.customer.email,
+              firstName: data.customer.first_name,
+              lastName: data.customer.last_name,
+            },
           },
         };
       } else {
-        throw new TransactionVerificationError(response.data.message || "Paystack transaction verification failed");
+        throw new TransactionVerificationError(response.data.message || 'Paystack transaction verification failed');
       }
     } catch (error: any) {
       throw new TransactionVerificationError(error.response?.data?.message || error.message, error.response?.status);
