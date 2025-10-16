@@ -23,6 +23,7 @@
     "typescript": "^5.9.3"
   },
   "dependencies": {
+    "axios": "^1.12.2",
     "decimal.js": "^10.6.0",
     "zod": "^4.1.12"
   }
