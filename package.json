@@ -9,7 +9,7 @@
     "test": "jest",
     "lint": "eslint \"src/**/*.ts\"",
     "lint:fix": "eslint \"src/**/*.ts\" --fix",
-    "format": "prettier --write \'src/**/*.ts\' \'*.{js,json,md}\'"
+    "format": "prettier --write 'src/**/*.ts' '*.{js,json,md}'"
   },
   "repository": {
     "type": "git",
