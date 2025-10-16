@@ -1,6 +1,7 @@
 import { PaymentGateway } from "./gateways";
 import { PaystackGateway } from "./gateways/paystack";
 import { FlutterwaveGateway } from "./gateways/flutterwave";
+import { Decimal } from "decimal.js";
 
 export class AfricanPaymentGatewaySDK {
   private gateway: PaymentGateway;
@@ -15,7 +16,7 @@ export class AfricanPaymentGatewaySDK {
     }
   }
 
-  public initiateTransaction(amount: number, currency: string, customerEmail: string, reference: string): Promise<any> {
+  public initiateTransaction(amount: Decimal, currency: string, customerEmail: string, reference: string): Promise<any> {
     return this.gateway.initiateTransaction(amount, currency, customerEmail, reference);
   }
 
