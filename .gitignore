@@ -3,6 +3,7 @@ dist
 *.js
 !jest.config.js
 !.eslintrc.js
+!.prettierrc.js
 *.d.ts
 .env
 .DS_Store
