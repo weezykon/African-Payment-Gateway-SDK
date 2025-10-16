@@ -6,7 +6,9 @@ export function verifyPaystackWebhookSignature(signature: string, payload: any, 
 }
 
 export function verifyFlutterwaveWebhookSignature(signature: string, payload: any, secret: string): boolean {
-  // Placeholder for Flutterwave webhook signature verification logic
-  console.log("Verifying Flutterwave webhook signature...");
-  return true; // For now, always return true
+  // Flutterwave sends a `verif-hash` header. We need to compare it with our secret hash.
+  // Note: The actual payload for Flutterwave might need to be handled differently based on their documentation.
+  // For this example, we'll assume the `signature` parameter is the `verif-hash` header value.
+  const expectedHash = crypto.createHash('md5').update(secret).digest('hex');
+  return signature === expectedHash;
 }
