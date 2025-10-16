@@ -1,11 +1,12 @@
 import { PaymentGateway } from "../index";
+import { Decimal } from "decimal.js";
 
 export class FlutterwaveGateway implements PaymentGateway {
   constructor(private publicKey: string, private secretKey: string) {}
 
-  async initiateTransaction(amount: number, currency: string, customerEmail: string, reference: string): Promise<any> {
+  async initiateTransaction(amount: Decimal, currency: string, customerEmail: string, reference: string): Promise<any> {
     // Flutterwave API call to initiate transaction
-    console.log(`Initiating Flutterwave transaction for ${amount} ${currency} for ${customerEmail} with reference ${reference}`);
+    console.log(`Initiating Flutterwave transaction for ${amount.toString()} ${currency} for ${customerEmail} with reference ${reference}`);
     return Promise.resolve({ message: "Flutterwave transaction initiated" });
   }
 
