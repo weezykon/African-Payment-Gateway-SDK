@@ -4,6 +4,7 @@ import { FlutterwaveGateway } from "./gateways/flutterwave";
 import { Decimal } from "decimal.js";
 import { InitiateTransactionResponse, VerifyTransactionResponse } from "./types";
 import { PaymentGatewayError } from "./errors";
+import { initiateTransactionSchema, verifyTransactionSchema } from "./validation";
 
 export class AfricanPaymentGatewaySDK {
   private gateway: PaymentGateway;
@@ -18,11 +19,28 @@ export class AfricanPaymentGatewaySDK {
     }
   }
 
-  public initiateTransaction(amount: Decimal, currency: string, customerEmail: string, reference: string): Promise<InitiateTransactionResponse> {
+  public async initiateTransaction(amount: Decimal, currency: string, customerEmail: string, reference: string): Promise<InitiateTransactionResponse> {
+    const validationResult = initiateTransactionSchema.safeParse({
+      amount: amount.toNumber(), // Zod expects number for validation
+      currency,
+      customerEmail,
+      reference,
+    });
+
+    if (!validationResult.success) {
+      throw new PaymentGatewayError("Invalid transaction initiation data", validationResult.error.errors[0].message);
+    }
+
     return this.gateway.initiateTransaction(amount, currency, customerEmail, reference);
   }
 
-  public verifyTransaction(reference: string): Promise<VerifyTransactionResponse> {
+  public async verifyTransaction(reference: string): Promise<VerifyTransactionResponse> {
+    const validationResult = verifyTransactionSchema.safeParse({ reference });
+
+    if (!validationResult.success) {
+      throw new PaymentGatewayError("Invalid transaction verification data", validationResult.error.errors[0].message);
+    }
+
     return this.gateway.verifyTransaction(reference);
   }
 }
