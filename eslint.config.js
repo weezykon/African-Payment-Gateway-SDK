@@ -1,10 +1,9 @@
 import globals from "globals";
 import js from "@eslint/js";
-import tseslintParser from "@typescript-eslint/parser";
-import tseslintPlugin from "@typescript-eslint/eslint-plugin";
+import tseslint from "typescript-eslint";
 import prettierConfig from "eslint-config-prettier";
 
-export default [
+export default tseslint.config(
   { // Global ignores
     ignores: ["dist", "node_modules", "docs"],
   },
@@ -14,12 +13,12 @@ export default [
     },
   },
   js.configs.recommended,
-  tseslintPlugin.configs.recommended,
+  ...tseslint.configs.recommended,
   prettierConfig,
   {
     files: ["**/*.ts"],
     languageOptions: {
-      parser: tseslintParser,
+      parser: tseslint.parser,
       parserOptions: {
         project: ['./tsconfig.json'],
         ecmaVersion: 2020,
@@ -30,4 +29,4 @@ export default [
       // Add any specific rules or overrides here
     },
   },
-];
+);
