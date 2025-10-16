@@ -2,6 +2,7 @@ node_modules
 dist
 *.js
 !jest.config.js
+!.eslintrc.js
 *.d.ts
 .env
 .DS_Store
