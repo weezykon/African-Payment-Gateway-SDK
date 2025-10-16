@@ -1,0 +1,24 @@
+{
+  "name": "african-payment-gateway-sdk",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/weezykon/African-Payment-Gateway-SDK.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/weezykon/African-Payment-Gateway-SDK/issues"
+  },
+  "homepage": "https://github.com/weezykon/African-Payment-Gateway-SDK#readme",
+  "devDependencies": {
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3"
+  }
+}
