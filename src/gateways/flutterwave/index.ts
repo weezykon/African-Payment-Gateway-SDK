@@ -2,44 +2,84 @@ import { PaymentGateway } from "../index";
 import { Decimal } from "decimal.js";
 import { InitiateTransactionResponse, VerifyTransactionResponse } from "../../types";
 import { PaymentGatewayError, TransactionVerificationError } from "../../errors";
+import axios from "axios";
 
 export class FlutterwaveGateway implements PaymentGateway {
+  private readonly API_BASE_URL = "https://api.flutterwave.com/v3";
+
   constructor(private publicKey: string, private secretKey: string) {}
 
   async initiateTransaction(amount: Decimal, currency: string, customerEmail: string, reference: string): Promise<InitiateTransactionResponse> {
     try {
-      // Simulate Flutterwave API call
-      console.log(`Initiating Flutterwave transaction for ${amount.toString()} ${currency} for ${customerEmail} with reference ${reference}`);
-      if (amount.lessThan(0)) {
-        throw new PaymentGatewayError("Amount cannot be negative", "INVALID_AMOUNT");
+      const response = await axios.post(
+        `${this.API_BASE_URL}/payments`,
+        {
+          tx_ref: reference,
+          amount: amount.toNumber(),
+          currency,
+          redirect_url: "https://webhook.site/", // This should be a configurable URL
+          customer: {
+            email: customerEmail,
+          },
+          customizations: {
+            title: "Payment for Order",
+            description: "Payment for items purchased",
+          },
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${this.secretKey}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      if (response.data.status === "success") {
+        return {
+          message: response.data.message,
+          reference: response.data.data.tx_ref,
+          status: "success",
+          authorizationUrl: response.data.data.link,
+        };
+      } else {
+        throw new PaymentGatewayError(response.data.message || "Flutterwave transaction initiation failed");
       }
-      return { message: "Flutterwave transaction initiated", reference, status: "success" };
     } catch (error: any) {
-      throw new PaymentGatewayError(error.message, error.code);
+      throw new PaymentGatewayError(error.response?.data?.message || error.message, error.response?.status);
     }
   }
 
   async verifyTransaction(reference: string): Promise<VerifyTransactionResponse> {
     try {
-      // Simulate Flutterwave API call to verify transaction
-      console.log(`Verifying Flutterwave transaction with reference ${reference}`);
-      if (reference === "invalid_ref") {
-        throw new TransactionVerificationError("Invalid transaction reference", "INVALID_REFERENCE");
-      }
-      return {
-        status: "success",
-        message: "Flutterwave transaction verified",
-        data: {
-          amount: new Decimal(100),
-          currency: "NGN",
-          reference,
+      const response = await axios.get(
+        `${this.API_BASE_URL}/transactions/${reference}/verify`,
+        {
+          headers: {
+            Authorization: `Bearer ${this.secretKey}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      if (response.data.status === "success") {
+        const data = response.data.data;
+        return {
           status: "success",
-          gatewayResponse: {},
-          customer: { email: "test@example.com" },
-        },
-      };
+          message: response.data.message,
+          data: {
+            amount: new Decimal(data.amount),
+            currency: data.currency,
+            reference: data.tx_ref,
+            status: data.status,
+            gatewayResponse: data,
+            customer: { email: data.customer.email, firstName: data.customer.first_name, lastName: data.customer.last_name },
+          },
+        };
+      } else {
+        throw new TransactionVerificationError(response.data.message || "Flutterwave transaction verification failed");
+      }
     } catch (error: any) {
-      throw new TransactionVerificationError(error.message, error.code);
+      throw new TransactionVerificationError(error.response?.data?.message || error.message, error.response?.status);
     }
   }
 }
