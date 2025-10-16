@@ -103,3 +103,7 @@ To build the project:
 ```bash
 npm run build
 ```
+
+## API Reference
+
+Detailed API documentation can be found in the [docs/api](./docs/api) directory after running `npm run docs`.
