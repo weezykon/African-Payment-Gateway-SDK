@@ -28,7 +28,7 @@ export class AfricanPaymentGatewaySDK {
     });
 
     if (!validationResult.success) {
-      throw new PaymentGatewayError("Invalid transaction initiation data", validationResult.error.errors[0].message);
+      throw new PaymentGatewayError("Invalid transaction initiation data", validationResult.error.issues[0].message);
     }
 
     return this.gateway.initiateTransaction(amount, currency, customerEmail, reference);
@@ -38,7 +38,7 @@ export class AfricanPaymentGatewaySDK {
     const validationResult = verifyTransactionSchema.safeParse({ reference });
 
     if (!validationResult.success) {
-      throw new PaymentGatewayError("Invalid transaction verification data", validationResult.error.errors[0].message);
+      throw new PaymentGatewayError("Invalid transaction verification data", validationResult.error.issues[0].message);
     }
 
     return this.gateway.verifyTransaction(reference);
