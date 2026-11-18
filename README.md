@@ -1,7 +1,5 @@
 # African Payment Gateway SDK
 
-[![CI](https://github.com/weezykon/African-Payment-Gateway-SDK/actions/workflows/ci.yml/badge.svg)](https://github.com/weezykon/African-Payment-Gateway-SDK/actions/workflows/ci.yml)
-
 A robust TypeScript SDK for integrating African payment gateways (Paystack and Flutterwave) with comprehensive type safety, validation, and error handling.
 
 > **Not yet published to npm.** Install directly from GitHub as shown below.
