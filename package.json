@@ -5,6 +5,11 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "type": "commonjs",
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
   "exports": {
     ".": {
       "require": "./dist/index.js",
@@ -16,7 +21,8 @@
     }
   },
   "scripts": {
-    "build": "tsc",
+    "prepare": "npm run build",
+    "build": "rm -rf dist && tsc",
     "docs": "typedoc --out docs/api src/index.ts",
     "test": "jest",
     "lint": "eslint \"src/**/*.ts\"",
@@ -39,7 +45,7 @@
     "payments",
     "fintech"
   ],
-  "author": "Akinbode Akinbode",
+  "author": "Akinlolu Akinbode (https://akinlolu.com)",
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/weezykon/African-Payment-Gateway-SDK/issues"

@@ -1,0 +1,63 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [18.x, 20.x, 22.x]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm test
+      - run: npm run build
+
+  verify-package:
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+      - run: npm ci
+      - name: Pack the package exactly as it would ship
+        run: npm pack
+      - name: Install the packed tarball into a clean project
+        run: |
+          mkdir -p "$RUNNER_TEMP/pkg-install-test"
+          cd "$RUNNER_TEMP/pkg-install-test"
+          npm init -y
+          npm install "$GITHUB_WORKSPACE"/african-payment-gateway-sdk-*.tgz decimal.js
+      - name: Smoke-test the installed package
+        run: |
+          node -e "
+            const { AfricanPaymentGatewaySDK, PaymentGatewayError } = require('african-payment-gateway-sdk');
+            const { Decimal } = require('decimal.js');
+            const sdk = new AfricanPaymentGatewaySDK('paystack', { secretKey: 'sk_test' });
+            if (!(sdk instanceof AfricanPaymentGatewaySDK)) {
+              throw new Error('Installed package failed to construct AfricanPaymentGatewaySDK');
+            }
+            sdk.initiateTransaction(new Decimal(-1), 'NGN', 'not-an-email', '').then(
+              () => { throw new Error('Expected validation to reject invalid input'); },
+              (err) => {
+                if (!(err instanceof PaymentGatewayError)) {
+                  throw new Error('Expected a PaymentGatewayError, got: ' + err);
+                }
+                console.log('Packaged install smoke test passed');
+              },
+            );
+          "
+        working-directory: ${{ runner.temp }}/pkg-install-test

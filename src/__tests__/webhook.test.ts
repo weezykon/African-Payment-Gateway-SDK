@@ -96,4 +96,75 @@ describe('Webhook Signature Verification', () => {
       }).toThrow(WebhookVerificationError);
     });
   });
+
+  describe('Edge cases', () => {
+    const paystackSecret = 'test_secret_key';
+    const flutterwaveSecret = 'test_flutterwave_hash';
+
+    it('rejects a bad Paystack signature regardless of payload shape', () => {
+      expect(() => {
+        verifyPaystackWebhookSignature('not-a-real-hash', { event: 'charge.success' }, paystackSecret);
+      }).toThrow(WebhookVerificationError);
+    });
+
+    it('rejects a bad Flutterwave signature regardless of payload shape', () => {
+      expect(() => {
+        verifyFlutterwaveWebhookSignature('not-a-real-hash', { event: 'charge.completed' }, flutterwaveSecret);
+      }).toThrow(WebhookVerificationError);
+    });
+
+    it('verifies a replayed Paystack payload identically on every call (no built-in replay protection)', () => {
+      const payload = { event: 'charge.success', data: { id: 1, reference: 'ref_replay' } };
+      const signature = crypto.createHmac('sha512', paystackSecret).update(JSON.stringify(payload)).digest('hex');
+
+      // Signature verification is stateless: resending the same valid payload/signature pair
+      // must keep succeeding. Protecting against replay (e.g. de-duping by reference) is the
+      // caller's responsibility, not this function's.
+      expect(verifyPaystackWebhookSignature(signature, payload, paystackSecret)).toBe(true);
+      expect(verifyPaystackWebhookSignature(signature, payload, paystackSecret)).toBe(true);
+    });
+
+    it('verifies a replayed Flutterwave payload identically on every call (no built-in replay protection)', () => {
+      const payload = { event: 'charge.completed', data: { id: 1, tx_ref: 'ref_replay' } };
+      const signature = crypto.createHash('md5').update(flutterwaveSecret).digest('hex');
+
+      expect(verifyFlutterwaveWebhookSignature(signature, payload, flutterwaveSecret)).toBe(true);
+      expect(verifyFlutterwaveWebhookSignature(signature, payload, flutterwaveSecret)).toBe(true);
+    });
+
+    it('wraps a malformed (non-serializable) Paystack payload in a WebhookVerificationError', () => {
+      const circular: Record<string, unknown> = { event: 'charge.success' };
+      circular.self = circular; // JSON.stringify cannot serialize this
+
+      expect(() => {
+        verifyPaystackWebhookSignature('any-signature', circular, paystackSecret);
+      }).toThrow(WebhookVerificationError);
+      expect(() => {
+        verifyPaystackWebhookSignature('any-signature', circular, paystackSecret);
+      }).toThrow('Paystack webhook verification failed');
+    });
+
+    it('rejects an empty or missing Paystack signature', () => {
+      const payload = { event: 'charge.success', data: {} };
+
+      expect(() => {
+        verifyPaystackWebhookSignature('', payload, paystackSecret);
+      }).toThrow(WebhookVerificationError);
+    });
+
+    it('rejects an empty or missing Flutterwave signature', () => {
+      const payload = { event: 'charge.completed', data: {} };
+
+      expect(() => {
+        verifyFlutterwaveWebhookSignature('', payload, flutterwaveSecret);
+      }).toThrow(WebhookVerificationError);
+    });
+
+    it('treats an empty object payload as a valid (if unusual) Paystack body', () => {
+      const payload = {};
+      const signature = crypto.createHmac('sha512', paystackSecret).update(JSON.stringify(payload)).digest('hex');
+
+      expect(verifyPaystackWebhookSignature(signature, payload, paystackSecret)).toBe(true);
+    });
+  });
 });

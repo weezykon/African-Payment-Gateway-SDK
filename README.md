@@ -1,6 +1,10 @@
 # African Payment Gateway SDK
 
+[![CI](https://github.com/weezykon/African-Payment-Gateway-SDK/actions/workflows/ci.yml/badge.svg)](https://github.com/weezykon/African-Payment-Gateway-SDK/actions/workflows/ci.yml)
+
 A robust TypeScript SDK for integrating African payment gateways (Paystack and Flutterwave) with comprehensive type safety, validation, and error handling.
+
+> **Not yet published to npm.** Install directly from GitHub as shown below.
 
 ## Features
 
@@ -16,9 +20,9 @@ A robust TypeScript SDK for integrating African payment gateways (Paystack and F
 ## Installation
 
 ```bash
-npm install african-payment-gateway-sdk decimal.js
+npm install github:weezykon/African-Payment-Gateway-SDK decimal.js
 # or
-yarn add african-payment-gateway-sdk decimal.js
+yarn add github:weezykon/African-Payment-Gateway-SDK decimal.js
 ```
 
 ## Quick Start
@@ -288,6 +292,16 @@ Detailed API documentation will be generated in the `docs/api` directory.
 4. **Handle errors properly**: Catch and handle specific error types
 5. **Verify transactions**: Always verify transaction status on your backend, don't trust client-side results
 6. **Use unique references**: Generate unique transaction references to prevent duplicates
+
+## Design Decisions
+
+**Why Decimal.js for amounts.** Payment amounts are money, and JavaScript's `number` type uses IEEE-754 floating point, which cannot represent most decimal fractions exactly (e.g. `0.1 + 0.2 !== 0.3`). Over many transactions, that imprecision compounds into real accounting discrepancies. `Decimal.js` represents amounts arbitrarily precisely and only drops down to `number` at the two points where the underlying gateway APIs require it (Paystack's kobo conversion, Flutterwave's raw amount), keeping the error surface as small as possible.
+
+**Why Zod for validation.** Gateway credentials and transaction parameters (amount, currency, email, reference) are user-supplied and cross a trust boundary before hitting a third-party API. Zod lets those rules live as declarative schemas (`src/validation/index.ts`) instead of scattered `if` checks, gives descriptive per-field error messages for free, and keeps validation logic statically typed alongside the rest of the SDK.
+
+**How errors are modelled.** All SDK errors extend a single `PaymentGatewayError` base class, with `TransactionVerificationError` and `WebhookVerificationError` as subclasses for more specific failure modes. This lets consumers either catch broadly (`catch (e) { if (e instanceof PaymentGatewayError) }`) or narrow to a specific failure type, while every error still carries an optional `code` (typically the HTTP status or a short machine-readable reason) for programmatic handling.
+
+**Why one interface covers two gateways.** Paystack and Flutterwave expose different request/response shapes (amount units, field names, status strings) but solve the same two problems: initiate a transaction, verify a transaction. The `PaymentGateway` interface (`src/gateways/index.ts`) captures that shared contract, and each gateway's class adapts its own API quirks (kobo conversion, differing customization fields) behind it. Consumers write `initiateTransaction`/`verifyTransaction` once and can switch gateways by changing a single constructor argument.
 
 ## Contributing
 

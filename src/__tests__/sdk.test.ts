@@ -1,5 +1,5 @@
 import { AfricanPaymentGatewaySDK } from '../index';
-import { PaymentGatewayError } from '../errors';
+import { PaymentGatewayError, TransactionVerificationError } from '../errors';
 import { Decimal } from 'decimal.js';
 import axios from 'axios';
 
@@ -263,6 +263,288 @@ describe('AfricanPaymentGatewaySDK', () => {
       await expect(flutterwaveSDK.initiateTransaction(amount, currency, customerEmail, reference)).rejects.toThrow(
         'Invalid transaction initiation data',
       );
+    });
+  });
+
+  describe('Error paths', () => {
+    let paystackSDK: AfricanPaymentGatewaySDK;
+    let flutterwaveSDK: AfricanPaymentGatewaySDK;
+
+    beforeEach(() => {
+      paystackSDK = new AfricanPaymentGatewaySDK('paystack', { secretKey: paystackSecretKey });
+      flutterwaveSDK = new AfricanPaymentGatewaySDK('flutterwave', {
+        publicKey: flutterwavePublicKey,
+        secretKey: flutterwaveSecretKey,
+      });
+    });
+
+    const validArgs = {
+      amount: new Decimal(100),
+      currency: 'NGN',
+      email: 'test@example.com',
+      reference: 'ref_1',
+    };
+
+    describe('Paystack', () => {
+      it('throws PaymentGatewayError when the API reports initiation failure', async () => {
+        mockedAxios.post.mockResolvedValueOnce({
+          data: { status: false, message: 'Insufficient funds' },
+        });
+
+        await expect(
+          paystackSDK.initiateTransaction(validArgs.amount, validArgs.currency, validArgs.email, validArgs.reference),
+        ).rejects.toThrow('Insufficient funds');
+      });
+
+      it('throws PaymentGatewayError on a network-level failure during initiation', async () => {
+        mockedAxios.post.mockRejectedValueOnce(new Error('Network Error'));
+
+        await expect(
+          paystackSDK.initiateTransaction(validArgs.amount, validArgs.currency, validArgs.email, validArgs.reference),
+        ).rejects.toThrow('Network Error');
+      });
+
+      it('surfaces the gateway response message and status code on an HTTP error during initiation', async () => {
+        mockedAxios.post.mockRejectedValueOnce({
+          response: { status: 401, data: { message: 'Invalid API key' } },
+        });
+
+        await expect(
+          paystackSDK.initiateTransaction(validArgs.amount, validArgs.currency, validArgs.email, validArgs.reference),
+        ).rejects.toMatchObject({ message: 'Invalid API key', code: '401' });
+      });
+
+      it('rejects invalid input before making any network call', async () => {
+        await expect(
+          paystackSDK.initiateTransaction(new Decimal(0), 'NG', 'not-an-email', ''),
+        ).rejects.toThrow(PaymentGatewayError);
+        expect(mockedAxios.post).not.toHaveBeenCalled();
+      });
+
+      it('throws TransactionVerificationError when the API reports verification failure', async () => {
+        mockedAxios.get.mockResolvedValueOnce({
+          data: { status: false, message: 'Transaction not found' },
+        });
+
+        const result = paystackSDK.verifyTransaction('missing_ref');
+        await expect(result).rejects.toThrow(TransactionVerificationError);
+        await expect(result).rejects.toThrow('Transaction not found');
+      });
+
+      it('throws TransactionVerificationError on a network-level failure during verification', async () => {
+        mockedAxios.get.mockRejectedValueOnce(new Error('timeout of 5000ms exceeded'));
+
+        const result = paystackSDK.verifyTransaction('ref_1');
+        await expect(result).rejects.toThrow(TransactionVerificationError);
+        await expect(result).rejects.toThrow('timeout of 5000ms exceeded');
+      });
+    });
+
+    describe('Flutterwave', () => {
+      it('throws PaymentGatewayError when the API reports initiation failure', async () => {
+        mockedAxios.post.mockResolvedValueOnce({
+          data: { status: 'error', message: 'Invalid currency' },
+        });
+
+        await expect(
+          flutterwaveSDK.initiateTransaction(validArgs.amount, validArgs.currency, validArgs.email, validArgs.reference),
+        ).rejects.toThrow('Invalid currency');
+      });
+
+      it('throws PaymentGatewayError on a network-level failure during initiation', async () => {
+        mockedAxios.post.mockRejectedValueOnce(new Error('Network Error'));
+
+        await expect(
+          flutterwaveSDK.initiateTransaction(validArgs.amount, validArgs.currency, validArgs.email, validArgs.reference),
+        ).rejects.toThrow('Network Error');
+      });
+
+      it('surfaces the gateway response message and status code on an HTTP error during initiation', async () => {
+        mockedAxios.post.mockRejectedValueOnce({
+          response: { status: 400, data: { message: 'Invalid tx_ref' } },
+        });
+
+        await expect(
+          flutterwaveSDK.initiateTransaction(validArgs.amount, validArgs.currency, validArgs.email, validArgs.reference),
+        ).rejects.toMatchObject({ message: 'Invalid tx_ref', code: '400' });
+      });
+
+      it('rejects invalid input before making any network call', async () => {
+        await expect(
+          flutterwaveSDK.initiateTransaction(new Decimal(-1), 'N', 'not-an-email', ''),
+        ).rejects.toThrow(PaymentGatewayError);
+        expect(mockedAxios.post).not.toHaveBeenCalled();
+      });
+
+      it('throws TransactionVerificationError when the API reports verification failure', async () => {
+        mockedAxios.get.mockResolvedValueOnce({
+          data: { status: 'error', message: 'Transaction not found' },
+        });
+
+        const result = flutterwaveSDK.verifyTransaction('missing_ref');
+        await expect(result).rejects.toThrow(TransactionVerificationError);
+        await expect(result).rejects.toThrow('Transaction not found');
+      });
+
+      it('throws TransactionVerificationError on a network-level failure during verification', async () => {
+        mockedAxios.get.mockRejectedValueOnce(new Error('timeout of 5000ms exceeded'));
+
+        const result = flutterwaveSDK.verifyTransaction('ref_1');
+        await expect(result).rejects.toThrow(TransactionVerificationError);
+        await expect(result).rejects.toThrow('timeout of 5000ms exceeded');
+      });
+    });
+  });
+
+  describe('Parity between gateways', () => {
+    let paystackSDK: AfricanPaymentGatewaySDK;
+    let flutterwaveSDK: AfricanPaymentGatewaySDK;
+
+    beforeEach(() => {
+      paystackSDK = new AfricanPaymentGatewaySDK('paystack', { secretKey: paystackSecretKey });
+      flutterwaveSDK = new AfricanPaymentGatewaySDK('flutterwave', {
+        publicKey: flutterwavePublicKey,
+        secretKey: flutterwaveSecretKey,
+      });
+    });
+
+    it('returns the same InitiateTransactionResponse shape for both gateways', async () => {
+      mockedAxios.post.mockResolvedValueOnce({
+        data: {
+          status: true,
+          message: 'Authorization URL created',
+          data: { authorization_url: 'https://paystack.com/auth', access_code: 'xyz', reference: 'ref_a' },
+        },
+      });
+      const paystackResult = await paystackSDK.initiateTransaction(new Decimal(100), 'NGN', 'a@example.com', 'ref_a');
+
+      mockedAxios.post.mockResolvedValueOnce({
+        data: {
+          status: 'success',
+          message: 'Hosted Link',
+          data: { link: 'https://flutterwave.com/pay', tx_ref: 'ref_b' },
+        },
+      });
+      const flutterwaveResult = await flutterwaveSDK.initiateTransaction(new Decimal(100), 'NGN', 'b@example.com', 'ref_b');
+
+      const expectedKeys = ['message', 'reference', 'status', 'authorizationUrl'].sort();
+      expect(Object.keys(paystackResult).sort()).toEqual(expect.arrayContaining(expectedKeys));
+      expect(Object.keys(flutterwaveResult).sort()).toEqual(expect.arrayContaining(expectedKeys));
+      expect(paystackResult.status).toBe(flutterwaveResult.status);
+    });
+
+    it('returns the same VerifyTransactionResponse shape for both gateways', async () => {
+      mockedAxios.get.mockResolvedValueOnce({
+        data: {
+          status: true,
+          message: 'ok',
+          data: {
+            amount: 10000,
+            currency: 'NGN',
+            reference: 'ref_a',
+            status: 'success',
+            customer: { email: 'a@example.com', first_name: 'A', last_name: 'B' },
+          },
+        },
+      });
+      const paystackResult = await paystackSDK.verifyTransaction('ref_a');
+
+      mockedAxios.get.mockResolvedValueOnce({
+        data: {
+          status: 'success',
+          message: 'ok',
+          data: {
+            amount: 100,
+            currency: 'NGN',
+            tx_ref: 'ref_b',
+            status: 'successful',
+            customer: { email: 'b@example.com', first_name: 'A', last_name: 'B' },
+          },
+        },
+      });
+      const flutterwaveResult = await flutterwaveSDK.verifyTransaction('ref_b');
+
+      expect(Object.keys(paystackResult).sort()).toEqual(Object.keys(flutterwaveResult).sort());
+      expect(Object.keys(paystackResult.data).sort()).toEqual(Object.keys(flutterwaveResult.data).sort());
+      expect(paystackResult.data.amount).toBeInstanceOf(Decimal);
+      expect(flutterwaveResult.data.amount).toBeInstanceOf(Decimal);
+    });
+  });
+
+  describe('Decimal.js amount handling', () => {
+    let paystackSDK: AfricanPaymentGatewaySDK;
+    let flutterwaveSDK: AfricanPaymentGatewaySDK;
+
+    beforeEach(() => {
+      paystackSDK = new AfricanPaymentGatewaySDK('paystack', { secretKey: paystackSecretKey });
+      flutterwaveSDK = new AfricanPaymentGatewaySDK('flutterwave', {
+        publicKey: flutterwavePublicKey,
+        secretKey: flutterwaveSecretKey,
+      });
+    });
+
+    it('converts Naira to Kobo without floating-point drift for fractional amounts', async () => {
+      mockedAxios.post.mockResolvedValueOnce({
+        data: {
+          status: true,
+          message: 'Authorization URL created',
+          data: { authorization_url: 'https://paystack.com/auth', access_code: 'xyz', reference: 'ref_c' },
+        },
+      });
+
+      // 19.99 * 100 in native floating point is 1998.9999999999998 - Decimal.js must avoid that.
+      await paystackSDK.initiateTransaction(new Decimal('19.99'), 'NGN', 'c@example.com', 'ref_c');
+
+      const [, body] = mockedAxios.post.mock.calls[0];
+      expect((body as { amount: number }).amount).toBe(1999);
+    });
+
+    it('preserves sub-unit precision in Paystack when converting Kobo back to Naira', async () => {
+      mockedAxios.get.mockResolvedValueOnce({
+        data: {
+          status: true,
+          message: 'ok',
+          data: {
+            amount: 123456, // 1,234.56 Naira in Kobo
+            currency: 'NGN',
+            reference: 'ref_d',
+            status: 'success',
+            customer: { email: 'd@example.com' },
+          },
+        },
+      });
+
+      const result = await paystackSDK.verifyTransaction('ref_d');
+      expect(result.data.amount.toString()).toBe('1234.56');
+    });
+
+    it('does not round large Flutterwave amounts when passing them through', async () => {
+      mockedAxios.post.mockResolvedValueOnce({
+        data: {
+          status: 'success',
+          message: 'Hosted Link',
+          data: { link: 'https://flutterwave.com/pay', tx_ref: 'ref_e' },
+        },
+      });
+
+      await flutterwaveSDK.initiateTransaction(new Decimal('1000000.75'), 'NGN', 'e@example.com', 'ref_e');
+
+      const [, body] = mockedAxios.post.mock.calls[0];
+      expect((body as { amount: number }).amount).toBe(1000000.75);
+    });
+
+    it('keeps verified amounts as Decimal instances rather than lossy numbers', async () => {
+      mockedAxios.get.mockResolvedValueOnce({
+        data: {
+          status: 'success',
+          message: 'ok',
+          data: { amount: 0.1, currency: 'NGN', tx_ref: 'ref_f', status: 'successful', customer: { email: 'f@example.com' } },
+        },
+      });
+
+      const result = await flutterwaveSDK.verifyTransaction('ref_f');
+      expect(result.data.amount).toBeInstanceOf(Decimal);
+      expect(result.data.amount.plus(new Decimal('0.2')).toString()).toBe('0.3');
     });
   });
 });
